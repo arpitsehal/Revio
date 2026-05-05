@@ -1,0 +1,36 @@
+{
+  "name": "lets-restore-electron",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "electron-is-dev": "^2.0.0"
+  },
+  "devDependencies": {
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.letsrestore.app",
+    "productName": "Let's Restore",
+    "directories": { "output": "../dist" },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../frontend/dist/**",
+      "../backend/**",
+      "../watcher/watcher.exe",
+      "!**/node_modules/.cache"
+    ],
+    "extraResources": [
+      { "from": "../watcher/watcher.exe", "to": "watcher.exe" }
+    ]
+  }
+}
