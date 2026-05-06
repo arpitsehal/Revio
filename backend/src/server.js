@@ -169,6 +169,7 @@ app.get('/api/stats', (req, res) => {
     watching: watcherBridge.isWatching(),
     watchPath: storageManager.getConfig().watchPath,
     usingCpp: watcherBridge.usingCpp(),
+    syncing: versionEngine.isSyncing() || storageManager.isScanning,
   });
 });
 

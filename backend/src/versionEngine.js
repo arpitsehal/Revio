@@ -23,6 +23,11 @@ class VersionEngine {
   constructor() {
     this.debounceMap = new Map();
     this.DEBOUNCE_MS = 600;
+    this.activeTasks = 0;
+  }
+
+  isSyncing() {
+    return this.activeTasks > 0;
   }
 
   shouldIgnore(relPath) {
@@ -47,13 +52,21 @@ class VersionEngine {
     if (!relPath || relPath.trim() === '') return;
 
     const key = `${action}:${relPath}`;
-    if (this.debounceMap.has(key)) clearTimeout(this.debounceMap.get(key));
+    if (this.debounceMap.has(key)) {
+      clearTimeout(this.debounceMap.get(key));
+    } else {
+      this.activeTasks++;
+    }
 
     const timer = setTimeout(() => {
       this.debounceMap.delete(key);
-      this._process(action, relPath, watchPath).catch(err => {
-        console.error('[VersionEngine] error:', err.message);
-      });
+      this._process(action, relPath, watchPath)
+        .catch(err => {
+          console.error('[VersionEngine] error:', err.message);
+        })
+        .finally(() => {
+          this.activeTasks--;
+        });
     }, this.DEBOUNCE_MS);
 
     this.debounceMap.set(key, timer);

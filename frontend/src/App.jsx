@@ -29,7 +29,7 @@ function SetupScreen({ onSetup }) {
       await axios.post('/api/watch', { watchPath: path.trim() });
       onSetup(path.trim());
     } catch (e) {
-      setError(e.response?.data?.error || 'Failed to start monitoring');
+      setError(e.response?.data?.error || 'Failed to start syncing');
     } finally { setLoading(false); }
   };
 
@@ -61,7 +61,7 @@ function SetupScreen({ onSetup }) {
           onClick={handleStart}
           disabled={loading}
         >
-          {loading ? <span className="spinner" /> : '🚀'} {loading ? 'Starting…' : 'Start Monitoring'}
+          {loading ? <span className="spinner" /> : '🚀'} {loading ? 'Starting…' : 'Start Syncing'}
         </button>
       </div>
 
@@ -76,7 +76,7 @@ export default function App() {
   const [page, setPage] = useState('dashboard');
   const [isSetup, setIsSetup] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
-  const { stats, refresh } = useStats(4000);
+  const { stats, refresh } = useStats(2500);
 
   // Check if already configured
   useEffect(() => {
@@ -110,6 +110,7 @@ export default function App() {
 
   const watchPath = stats?.watchPath || '';
   const watching  = stats?.watching  || false;
+  const syncing   = stats?.syncing   || false;
 
   const toggleWatch = async () => {
     try {
@@ -120,7 +121,7 @@ export default function App() {
       }
       refresh();
     } catch (e) {
-      alert('Failed to toggle monitoring');
+      alert('Failed to toggle syncing');
     }
   };
 
@@ -169,10 +170,14 @@ export default function App() {
               style={{ cursor: 'pointer' }}
               title={watching ? 'Click to pause' : 'Click to start'}
             >
-              <div className={`watch-dot ${watching ? 'on' : 'off'}`} />
+              {syncing ? (
+                <div className="spinner" style={{ width: 10, height: 10, borderWidth: 1.5 }} />
+              ) : (
+                <div className={`watch-dot ${watching ? 'on' : 'off'}`} />
+              )}
               <div style={{ flex: 1 }}>
                 <div className="watch-label" style={{ fontWeight: 600, fontSize: 11 }}>
-                  {watching ? 'Monitoring' : 'Paused'}
+                  {watching ? (syncing ? 'Syncing...' : 'All files are synced') : 'Paused'}
                 </div>
                 <div className="watch-label" style={{ opacity: 0.6, fontSize: 10 }}>
                   {watchPath ? watchPath.split(/[/\\]/).pop() : '—'}

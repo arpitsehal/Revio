@@ -91,7 +91,7 @@ export default function Settings({ onFolderChange }) {
           </div>
           <div className="setting-row">
             <div>
-              <div className="setting-label">Auto-start Monitoring</div>
+              <div className="setting-label">Auto-start Syncing</div>
               <div className="setting-desc">Begin watching automatically on app launch</div>
             </div>
             <div

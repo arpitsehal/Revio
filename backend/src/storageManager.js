@@ -10,6 +10,7 @@ class StorageManager {
     fs.ensureDirSync(APP_DATA);
     this.config = this._loadConfig();
     this.metaCache = {};
+    this.isScanning = false;
   }
 
   _loadConfig() {
@@ -38,81 +39,85 @@ class StorageManager {
     await this.performInitialScan(normalized);
   }
 
-  async performInitialScan(watchPath) {
     const wp = watchPath.toLowerCase();
-    console.log('[StorageManager] Starting initial scan of:', wp);
-    const meta = await this._ensureMetadata(wp);
-    const filesInDir = await this._scanDirRecursive(wp);
-    const dirMap = new Map(filesInDir.map(item => [item.path, item.size]));
-    
-    let changed = false;
-    const baselineTasks = [];
-    for (const item of filesInDir) {
-      const relPath = item.path;
-      const size = item.size;
-      if (!meta.files[relPath]) {
-        meta.files[relPath] = {
-          id: uuidv4(),
-          name: path.basename(relPath),
-          relativePath: relPath,
-          currentStatus: 'active',
-          size: size,
-          versions: [],
-          lastSeen: new Date().toISOString(),
-        };
-        changed = true;
-        baselineTasks.push(relPath);
-      } else {
-        // Update size if active
-        if (meta.files[relPath].currentStatus !== 'deleted' && meta.files[relPath].size !== size) {
-            meta.files[relPath].size = size;
-            changed = true;
-        }
-        if (meta.files[relPath].currentStatus === 'deleted') {
-            meta.files[relPath].currentStatus = 'active';
-            meta.files[relPath].size = size;
-            changed = true;
-        }
-        if (meta.files[relPath].currentStatus === 'active' && meta.files[relPath].versions.length === 0) {
-            baselineTasks.push(relPath);
+    this.isScanning = true;
+    try {
+      console.log('[StorageManager] Starting initial scan of:', wp);
+      const meta = await this._ensureMetadata(wp);
+      const filesInDir = await this._scanDirRecursive(wp);
+      const dirMap = new Map(filesInDir.map(item => [item.path, item.size]));
+      
+      let changed = false;
+      const baselineTasks = [];
+      for (const item of filesInDir) {
+        const relPath = item.path;
+        const size = item.size;
+        if (!meta.files[relPath]) {
+          meta.files[relPath] = {
+            id: uuidv4(),
+            name: path.basename(relPath),
+            relativePath: relPath,
+            currentStatus: 'active',
+            size: size,
+            versions: [],
+            lastSeen: new Date().toISOString(),
+          };
+          changed = true;
+          baselineTasks.push(relPath);
+        } else {
+          // Update size if active
+          if (meta.files[relPath].currentStatus !== 'deleted' && meta.files[relPath].size !== size) {
+              meta.files[relPath].size = size;
+              changed = true;
+          }
+          if (meta.files[relPath].currentStatus === 'deleted') {
+              meta.files[relPath].currentStatus = 'active';
+              meta.files[relPath].size = size;
+              changed = true;
+          }
+          if (meta.files[relPath].currentStatus === 'active' && meta.files[relPath].versions.length === 0) {
+              baselineTasks.push(relPath);
+          }
         }
       }
-    }
 
-    // 2. Detect deleted files (was in meta, not in dir)
-    for (const relPath in meta.files) {
-      const file = meta.files[relPath];
-      if (file.currentStatus !== 'deleted' && !dirMap.has(relPath)) {
-        console.log(`[StorageManager] Detected missing file during scan: ${relPath}`);
-        file.currentStatus = 'deleted';
-        file.lastSeen = new Date().toISOString();
-        // Add a deletion version marker
-        file.versions.push({
-            versionId: uuidv4(),
-            timestamp: file.lastSeen,
-            size: file.size || 0,
-            status: 'deleted',
-            storagePath: null
-        });
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      await this._saveMeta();
-    }
-
-    // Perform baselines (in chunks to avoid overload)
-    if (baselineTasks.length > 0) {
-        console.log(`[StorageManager] Creating baselines for ${baselineTasks.length} files...`);
-        const { versionEngine } = require('./versionEngine');
-        for (let i = 0; i < baselineTasks.length; i += 5) {
-            const chunk = baselineTasks.slice(i, i + 5);
-            await Promise.all(chunk.map(p => versionEngine.createBaseline(p, wp)));
+      // 2. Detect deleted files (was in meta, not in dir)
+      for (const relPath in meta.files) {
+        const file = meta.files[relPath];
+        if (file.currentStatus !== 'deleted' && !dirMap.has(relPath)) {
+          console.log(`[StorageManager] Detected missing file during scan: ${relPath}`);
+          file.currentStatus = 'deleted';
+          file.lastSeen = new Date().toISOString();
+          // Add a deletion version marker
+          file.versions.push({
+              versionId: uuidv4(),
+              timestamp: file.lastSeen,
+              size: file.size || 0,
+              status: 'deleted',
+              storagePath: null
+          });
+          changed = true;
         }
-        console.log(`[StorageManager] Baselines complete.`);
+      }
+
+      if (changed) {
+        await this._saveMeta();
+      }
+
+      // Perform baselines (in chunks to avoid overload)
+      if (baselineTasks.length > 0) {
+          console.log(`[StorageManager] Creating baselines for ${baselineTasks.length} files...`);
+          const { versionEngine } = require('./versionEngine');
+          for (let i = 0; i < baselineTasks.length; i += 5) {
+              const chunk = baselineTasks.slice(i, i + 5);
+              await Promise.all(chunk.map(p => versionEngine.createBaseline(p, wp)));
+          }
+          console.log(`[StorageManager] Baselines complete.`);
+      }
+      console.log(`[StorageManager] Scan complete. Metadata now has ${Object.keys(meta.files).length} files tracked.`);
+    } finally {
+      this.isScanning = false;
     }
-    console.log(`[StorageManager] Scan complete. Metadata now has ${Object.keys(meta.files).length} files tracked.`);
   }
 
   async _scanDirRecursive(dir, relRoot = '') {
