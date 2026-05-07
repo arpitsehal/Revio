@@ -154,8 +154,11 @@ export default function App() {
                   <div style={{ color: 'var(--red)' }}>Deleted: {stats.deletedFiles}</div>
                   
                   {stats.topExtensions?.length > 0 && (
-                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', fontSize: 11, opacity: 0.8 }}>
-                      {stats.topExtensions.map(e => <div key={e}>{e}</div>)}
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', fontSize: 11 }}>
+                      <div className="nav-section-label" style={{ fontSize: 9, marginBottom: 6, opacity: 0.6, letterSpacing: '0.05em' }}>FILE TYPES</div>
+                      <div style={{ maxHeight: 180, overflowY: 'auto', paddingRight: 4, opacity: 0.8 }} className="custom-scroll">
+                        {stats.topExtensions.map(e => <div key={e} style={{ padding: '2px 0' }}>{e}</div>)}
+                      </div>
                     </div>
                   )}
                 </div>

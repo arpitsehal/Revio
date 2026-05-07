@@ -139,6 +139,8 @@ app.get('/api/stats', (req, res) => {
   // Folders and Extensions (only for active files)
   const folders = new Set();
   const extMap = {};
+  const WHITELIST = ['json', 'jpg', 'png', 'pdf', 'txt', 'jpeg'];
+
   files.forEach(f => {
     if (f.currentStatus === 'deleted') return;
     
@@ -149,14 +151,13 @@ app.get('/api/stats', (req, res) => {
       }
     }
     const ext = f.name.split('.').pop().toLowerCase();
-    if (ext && ext !== f.name.toLowerCase()) {
+    if (WHITELIST.includes(ext)) {
       extMap[ext] = (extMap[ext] || 0) + 1;
     }
   });
 
   const topExts = Object.entries(extMap)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
     .map(([ext, count]) => `${ext}: ${count}`);
 
   res.json({
