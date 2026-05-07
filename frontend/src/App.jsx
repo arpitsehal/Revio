@@ -35,7 +35,8 @@ function SetupScreen({ onSetup }) {
 
   return (
     <div className="setup-screen">
-      <div className="setup-title">Let's Restore</div>
+      <img src="/logo.png" alt="Revio" style={{ width: 80, height: 80, marginBottom: 16, objectFit: 'contain' }} />
+      <div className="setup-title">Revio</div>
       <div className="setup-sub">
         Git-like file recovery for everyone. Select a folder to begin automatic versioning and protection.
       </div>
@@ -72,6 +73,21 @@ function SetupScreen({ onSetup }) {
   );
 }
 
+function TitleBar() {
+  const closeApp = () => window.electronAPI?.closeApp?.();
+  const minApp = () => window.electronAPI?.minimizeApp?.();
+  const maxApp = () => window.electronAPI?.maximizeApp?.();
+
+  return (
+    <div className="titlebar">
+      <div className="titlebar-title">
+        <img src="/logo.png" alt="Revio" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+        <span>Revio</span>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState('dashboard');
   const [isSetup, setIsSetup] = useState(false);
@@ -93,6 +109,7 @@ export default function App() {
   if (checkingStatus) {
     return (
       <div className="app">
+        <TitleBar />
         <div className="flex-center" style={{ flex: 1 }}>
           <div className="spinner" style={{ width: 32, height: 32 }} />
         </div>
@@ -103,6 +120,7 @@ export default function App() {
   if (!isSetup) {
     return (
       <div className="app">
+        <TitleBar />
         <SetupScreen onSetup={handleSetup} />
       </div>
     );
@@ -127,6 +145,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <TitleBar />
       <div className="main-layout">
         {/* Sidebar */}
         <aside className="sidebar">

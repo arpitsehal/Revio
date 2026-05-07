@@ -54,7 +54,7 @@ export default function Settings({ onFolderChange }) {
           <div className="setting-row">
             <div>
               <div className="setting-label">Monitored Directory</div>
-              <div className="setting-desc">The folder Let's Restore will track in real-time</div>
+              <div className="setting-desc">The folder Revio will track in real-time</div>
             </div>
           </div>
           <div style={{ padding: '0 16px 16px' }}>
@@ -122,7 +122,7 @@ export default function Settings({ onFolderChange }) {
           <div className="setting-group-header">About</div>
           <div className="setting-row">
             <div>
-              <div className="setting-label">Let's Restore</div>
+              <div className="setting-label">Revio</div>
               <div className="setting-desc">Git-like file recovery and versioning · v1.0.0</div>
             </div>
             <span className="tag">Offline-first</span>
