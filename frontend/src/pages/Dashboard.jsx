@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { useStats, useFiles, useVersions } from '../hooks';
 import { formatSize } from '../utils';
 import FileList from '../components/FileList';
@@ -99,8 +100,14 @@ export default function Dashboard() {
                   style={{ fontSize: 10, padding: '4px 10px', height: 'auto' }}
                   onClick={async () => {
                     if (window.confirm(`Restore all deleted files in "${currentDir}"?`)) {
-                      await axios.post('/api/folders/restore', { folderPath: currentDir });
-                      refresh();
+                      const loadToast = toast.loading('Restoring all files...');
+                      try {
+                        await axios.post('/api/folders/restore', { folderPath: currentDir });
+                        toast.success('All files restored successfully!', { id: loadToast });
+                        refresh();
+                      } catch (e) {
+                        toast.error(e.response?.data?.error || 'Restore failed', { id: loadToast });
+                      }
                     }
                   }}
                 >

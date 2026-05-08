@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { formatTs, formatSize, statusClass } from '../utils';
 
 export default function RestoreModal({ file, version, onClose, onSuccess }) {
@@ -13,13 +14,17 @@ export default function RestoreModal({ file, version, onClose, onSuccess }) {
 
   const handleRestore = async () => {
     setLoading(true); setError('');
+    const loadToast = toast.loading(asCopy ? 'Creating copy...' : 'Restoring file...');
     try {
       await axios.post(`/api/files/${file.id}/restore`, { versionId: version.versionId, asCopy });
       setSuccess(true);
+      toast.success(asCopy ? 'Copy created successfully!' : 'File restored successfully!', { id: loadToast });
       onSuccess?.();
       setTimeout(onClose, 1500);
     } catch (e) {
-      setError(e.response?.data?.error || 'Restore failed');
+      const msg = e.response?.data?.error || 'Restore failed';
+      setError(msg);
+      toast.error(msg, { id: loadToast });
     } finally { setLoading(false); }
   };
 

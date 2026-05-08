@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Toaster } from 'react-hot-toast';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import { useStats } from './hooks';
@@ -35,6 +36,7 @@ function SetupScreen({ onSetup }) {
 
   return (
     <div className="setup-screen">
+      <Toaster position="bottom-right" toastOptions={{ duration: 4000, style: { background: '#1e1e1e', color: '#fff', fontSize: '14px', borderRadius: '8px', border: '1px solid #333' } }} />
       <img src="/logo.png" alt="Revio" style={{ width: 80, height: 80, marginBottom: 16, objectFit: 'contain' }} />
       <div className="setup-title">Revio</div>
       <div className="setup-sub">
@@ -109,6 +111,7 @@ export default function App() {
   if (checkingStatus) {
     return (
       <div className="app">
+        <Toaster position="bottom-right" toastOptions={{ duration: 4000, style: { background: '#1e1e1e', color: '#fff', fontSize: '14px', borderRadius: '8px', border: '1px solid #333' } }} />
         <TitleBar />
         <div className="flex-center" style={{ flex: 1 }}>
           <div className="spinner" style={{ width: 32, height: 32 }} />
@@ -145,6 +148,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <Toaster position="bottom-right" toastOptions={{ duration: 4000, style: { background: '#1e1e1e', color: '#fff', fontSize: '14px', borderRadius: '8px', border: '1px solid #333' } }} />
       <TitleBar />
       <div className="main-layout">
         {/* Sidebar */}
