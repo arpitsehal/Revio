@@ -1,0 +1,96 @@
+{
+  "files": {
+    "test.txt": {
+      "id": "e3bd8815-8f1f-470e-8014-9e6a4f864cde",
+      "name": "test.txt",
+      "relativePath": "test.txt",
+      "currentStatus": "modified",
+      "versions": [
+        {
+          "versionId": "1e2b961e-5fb1-4d15-ad3e-c4ea183935a4",
+          "timestamp": "2026-05-09T18:13:34.067Z",
+          "size": 12000,
+          "status": "synced",
+          "storagePath": "test_env\\.restorex\\versions\\2026-05-09T18-13-34-067Z__test.txt",
+          "encoding": "full",
+          "parentVersionId": null
+        },
+        {
+          "versionId": "344766d0-4cdb-44e1-968f-11b3c5426ef9",
+          "timestamp": "2026-05-09T18:13:34.079Z",
+          "size": 12049,
+          "status": "modified",
+          "storagePath": "test_env\\.restorex\\versions\\2026-05-09T18-13-34-079Z__test.txt",
+          "encoding": "full",
+          "parentVersionId": null
+        }
+      ],
+      "lastSeen": "2026-05-09T18:13:34.079Z",
+      "size": 12049
+    },
+    "test_restored_1778350414088.txt": {
+      "id": "608df4d7-04f6-4b47-bd0e-59459d84ba32",
+      "name": "test_restored_1778350414088.txt",
+      "relativePath": "test_restored_1778350414088.txt",
+      "currentStatus": "synced",
+      "size": 12049,
+      "versions": [
+        {
+          "versionId": "8323d3cd-d187-4c50-9d38-0ab810737915",
+          "timestamp": "2026-05-09T18:14:23.473Z",
+          "size": 12049,
+          "status": "synced",
+          "storagePath": "test_env\\.restorex\\versions\\2026-05-09T18-14-23-473Z__test_restored_1778350414088.txt",
+          "encoding": "full"
+        }
+      ],
+      "lastSeen": "2026-05-09T18:14:23.473Z"
+    },
+    "test2.txt": {
+      "id": "b3f9cbe6-a554-411d-ba71-1a7d857aa5f1",
+      "name": "test2.txt",
+      "relativePath": "test2.txt",
+      "currentStatus": "modified",
+      "versions": [
+        {
+          "versionId": "a26e267c-8110-4350-8d58-e48fee78f290",
+          "timestamp": "2026-05-09T18:14:23.482Z",
+          "size": 13000,
+          "status": "synced",
+          "storagePath": "test_env\\.restorex\\versions\\2026-05-09T18-14-23-482Z__test2.txt",
+          "encoding": "full",
+          "parentVersionId": null
+        },
+        {
+          "versionId": "1894a5f8-3265-4a7a-8d69-5e976acd6889",
+          "timestamp": "2026-05-09T18:14:23.489Z",
+          "size": 13049,
+          "status": "modified",
+          "storagePath": "test_env\\.restorex\\versions\\2026-05-09T18-14-23-489Z__test2.txt",
+          "encoding": "delta",
+          "parentVersionId": "a26e267c-8110-4350-8d58-e48fee78f290"
+        }
+      ],
+      "lastSeen": "2026-05-09T18:14:23.489Z",
+      "size": 13049
+    },
+    "test2_restored_1778350463506.txt": {
+      "id": "f65b1ecb-d510-4a07-83ec-30f4fa7e1f02",
+      "name": "test2_restored_1778350463506.txt",
+      "relativePath": "test2_restored_1778350463506.txt",
+      "currentStatus": "synced",
+      "size": 13049,
+      "versions": [
+        {
+          "versionId": "34896704-56fd-410f-8a23-24988cc0dc91",
+          "timestamp": "2026-05-09T18:16:19.977Z",
+          "size": 13049,
+          "status": "synced",
+          "storagePath": "test_env\\.restorex\\versions\\2026-05-09T18-16-19-977Z__test2_restored_1778350463506.txt",
+          "encoding": "full"
+        }
+      ],
+      "lastSeen": "2026-05-09T18:16:19.977Z"
+    }
+  }
+}

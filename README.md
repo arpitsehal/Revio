@@ -14,6 +14,13 @@
 - **Local-First Architecture**: All versions are stored in a hidden `.restorex` folder inside your directory. Your data never leaves your machine.
 - **Premium UI**: A modern, minimalist glassmorphic dashboard built for speed and clarity.
 
+## ⚡ Storage Optimizations
+
+Revio employs a highly efficient dual-layer compression engine to minimize disk usage:
+- **Baseline GZIP Compression**: When a file is tracked for the first time, it is heavily compressed using Node.js `zlib` (saving up to 80% of storage space for text/code).
+- **Micro-Delta Engine**: When you edit a tracked file, Revio computes the exact differences using `fossil-delta` and saves a microscopic "delta" file (often reducing edit backup sizes by over 99%).
+- **Smart Bypassing**: Large files (over 50MB) and already-compressed media (like `.zip`, `.mp4`, `.jpg`) automatically bypass the compression engines to prevent CPU spikes and memory exhaustion.
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: React + Vite (Vanilla CSS for styling)

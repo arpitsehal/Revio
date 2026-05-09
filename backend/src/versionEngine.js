@@ -2,6 +2,15 @@ const fs = require('fs-extra');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { storageManager } = require('./storageManager');
+const fossilDelta = require('fossil-delta');
+const zlib = require('zlib');
+
+const SKIP_GZIP_EXT = new Set([
+  '.zip', '.rar', '.7z', '.tar', '.gz',
+  '.mp4', '.mkv', '.avi', '.mov',
+  '.mp3', '.flac', '.aac',
+  '.jpg', '.jpeg', '.png', '.gif', '.webp'
+]);
 
 // File extensions to prioritize
 const HIGH_PRIORITY_EXT = new Set([
@@ -90,7 +99,62 @@ class VersionEngine {
         if (!stat.isFile()) return;
 
         await fs.ensureDir(storageDir);
-        await fs.copy(fullPath, storagePath);
+
+        let encoding = 'full';
+        let parentVersionId = null;
+        const fileRecord = storageManager.getFileByPath(relPath);
+
+        const ext = path.extname(relPath).toLowerCase();
+        const canGzip = stat.size <= 50 * 1024 * 1024 && !SKIP_GZIP_EXT.has(ext);
+
+        const saveFullOrGzip = async (src, dst) => {
+          if (canGzip) {
+            const buffer = await fs.readFile(src);
+            const gzipped = zlib.gzipSync(buffer);
+            if (gzipped.length < buffer.length) {
+              await fs.writeFile(dst, gzipped);
+              return 'gzip';
+            }
+          }
+          await fs.copy(src, dst);
+          return 'full';
+        };
+
+        // Try to do delta compression if we have a previous version and size is <= 50MB
+        if (fileRecord && fileRecord.versions.length > 0 && stat.size <= 50 * 1024 * 1024) {
+          let lastActive = null;
+          for (let i = fileRecord.versions.length - 1; i >= 0; i--) {
+            if (fileRecord.versions[i].status !== 'deleted' && fileRecord.versions[i].storagePath) {
+              lastActive = fileRecord.versions[i];
+              break;
+            }
+          }
+
+          if (lastActive) {
+            try {
+              const prevBuffer = await this._reconstructVersion(fileRecord, lastActive.versionId);
+              const newBuffer = await fs.readFile(fullPath);
+              const deltaArray = fossilDelta.createDelta(prevBuffer, newBuffer);
+              
+              // Only use delta if it's actually smaller than the full file
+              if (deltaArray.length < newBuffer.length) {
+                await fs.writeFile(storagePath, Buffer.from(deltaArray));
+                encoding = 'delta';
+                parentVersionId = lastActive.versionId;
+                console.log(`[VersionEngine] Delta size: ${deltaArray.length} bytes (Full: ${newBuffer.length} bytes)`);
+              } else {
+                encoding = await saveFullOrGzip(fullPath, storagePath);
+              }
+            } catch (err) {
+              console.warn('[VersionEngine] Delta creation failed, falling back to full copy:', err.message);
+              encoding = await saveFullOrGzip(fullPath, storagePath);
+            }
+          } else {
+            encoding = await saveFullOrGzip(fullPath, storagePath);
+          }
+        } else {
+          encoding = await saveFullOrGzip(fullPath, storagePath);
+        }
 
         const restoredFrom = this.pendingRestores.get(relPath);
         const finalStatus = restoredFrom ? 'restored' : action;
@@ -103,13 +167,15 @@ class VersionEngine {
           status: finalStatus,
           storagePath,
           restoredFrom,
+          encoding,
+          parentVersionId
         });
 
         if (restoredFrom) {
           await storageManager.upsertFile(relPath, { lastRestoredVersionId: restoredFrom });
         }
 
-        console.log(`[+] Versioned ${finalStatus}: ${relPath}`);
+        console.log(`[+] Versioned ${finalStatus} (${encoding}): ${relPath}`);
       } catch (err) {
         console.warn(`[VersionEngine] Could not version ${relPath}:`, err.message);
       }
@@ -131,13 +197,68 @@ class VersionEngine {
       try {
         const stat = await fs.stat(fullPath);
         if (!stat.isFile()) return;
-        await fs.ensureDir(storageDir);
-        await fs.copy(fullPath, storagePath);
+        const ext = path.extname(relPath).toLowerCase();
+        let encoding = 'full';
+        if (stat.size <= 50 * 1024 * 1024 && !SKIP_GZIP_EXT.has(ext)) {
+          const buffer = await fs.readFile(fullPath);
+          const gzipped = zlib.gzipSync(buffer);
+          if (gzipped.length < buffer.length) {
+            await fs.writeFile(storagePath, gzipped);
+            encoding = 'gzip';
+          } else {
+            await fs.copy(fullPath, storagePath);
+          }
+        } else {
+          await fs.copy(fullPath, storagePath);
+        }
         await storageManager.addVersion(relPath, {
-          versionId, timestamp, size: stat.size, status: 'created', storagePath,
+          versionId, timestamp, size: stat.size, status: 'created', storagePath, encoding
         });
       } catch (e) {}
     }
+  }
+
+  async _reconstructVersion(file, versionId) {
+    const versionIdx = file.versions.findIndex(v => v.versionId === versionId);
+    if (versionIdx === -1) throw new Error('Version not found');
+    
+    const version = file.versions[versionIdx];
+    if (version.status === 'deleted' || !version.storagePath) throw new Error('Cannot reconstruct deleted version');
+
+    if (version.encoding !== 'delta') {
+      if (version.encoding === 'gzip') {
+        return zlib.gunzipSync(await fs.readFile(version.storagePath));
+      }
+      return await fs.readFile(version.storagePath);
+    }
+
+    const chain = [];
+    let currentIdx = versionIdx;
+    while (currentIdx >= 0) {
+      const v = file.versions[currentIdx];
+      chain.unshift(v);
+      if (v.encoding !== 'delta') break;
+      currentIdx = file.versions.findIndex(parent => parent.versionId === v.parentVersionId);
+      if (currentIdx === -1) throw new Error('Delta chain broken');
+    }
+
+    let buffer;
+    if (chain[0].encoding === 'gzip') {
+      const gzipped = await fs.readFile(chain[0].storagePath);
+      buffer = zlib.gunzipSync(gzipped);
+    } else {
+      buffer = await fs.readFile(chain[0].storagePath);
+    }
+    for (let i = 1; i < chain.length; i++) {
+      const deltaBuffer = await fs.readFile(chain[i].storagePath);
+      try {
+        const resultArray = fossilDelta.applyDelta(buffer, deltaBuffer);
+        buffer = Buffer.from(resultArray);
+      } catch (err) {
+        throw new Error(`Failed to apply delta at version ${chain[i].versionId}: ${err.message}`);
+      }
+    }
+    return buffer;
   }
 
   async createBaseline(relPath, watchPath) {
@@ -155,7 +276,20 @@ class VersionEngine {
       const storagePath = path.join(storageDir, storageName);
 
       await fs.ensureDir(storageDir);
-      await fs.copy(fullPath, storagePath);
+      const ext = path.extname(relPath).toLowerCase();
+      let encoding = 'full';
+      if (stat.size <= 50 * 1024 * 1024 && !SKIP_GZIP_EXT.has(ext)) {
+        const buffer = await fs.readFile(fullPath);
+        const gzipped = zlib.gzipSync(buffer);
+        if (gzipped.length < buffer.length) {
+          await fs.writeFile(storagePath, gzipped);
+          encoding = 'gzip';
+        } else {
+          await fs.copy(fullPath, storagePath);
+        }
+      } else {
+        await fs.copy(fullPath, storagePath);
+      }
 
       await storageManager.addVersion(relPath, {
         versionId: uuidv4(),
@@ -163,6 +297,7 @@ class VersionEngine {
         size: stat.size,
         status: 'synced',
         storagePath,
+        encoding
       });
       console.log(`[Baseline] Created for: ${relPath}`);
     } catch (e) {}
@@ -197,7 +332,16 @@ class VersionEngine {
     if (!asCopy && !targetPath) {
       this.pendingRestores.set(file.relativePath, versionId);
     }
-    await fs.copy(version.storagePath, destination);
+    
+    if (version.encoding === 'delta') {
+      const buffer = await this._reconstructVersion(file, versionId);
+      await fs.writeFile(destination, buffer);
+    } else if (version.encoding === 'gzip') {
+      const gzipped = await fs.readFile(version.storagePath);
+      await fs.writeFile(destination, zlib.gunzipSync(gzipped));
+    } else {
+      await fs.copy(version.storagePath, destination);
+    }
 
     // If restoring to original location, update status
     if (!asCopy && !targetPath) {
