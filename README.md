@@ -1,14 +1,16 @@
-# Let's Restore 🕒
+# Revio 🕒
 
 > **⚠️ Work in Progress**: This project is currently under active development. Expect frequent updates and experimental features.
 
-**Let's Restore** is a robust, local-first file versioning and restoration system. Think of it as "Git for everyone"—it allows you to track changes in any local directory and restore previous versions of files or entire folders with a single click. No accounts, no cloud, just pure local protection.
+**Revio** is a robust, local-first file versioning and restoration system. Think of it as "Git for everyone"—it allows you to track changes in any local directory and restore previous versions of files or entire folders with a single click. No accounts, no cloud, just pure local protection.
 
 ## 🚀 Key Features
 
 - **Real-time Syncing**: High-performance watcher detects file changes instantly and protects your work as you go.
+- **Dynamic File Status**: Real-time status badges visually indicate whether files are synced, created, or modified.
 - **Visual Version Timeline**: Browse through snapshots of your files with a clean, intuitive history view.
-- **Smart Restoration**: Accidentally deleted a file? Modified something you shouldn't have? Restore individual files or entire directory structures to any previous point in time.
+- **Smart Restoration**: Accidentally deleted a file? Modified something you shouldn't have? Restore individual files or use the **"Restore All"** function for entire directory structures to any previous point in time.
+- **Immediate Feedback**: Seamless toast notifications provide real-time updates on restoration success and errors.
 - **Local-First Architecture**: All versions are stored in a hidden `.restorex` folder inside your directory. Your data never leaves your machine.
 - **Premium UI**: A modern, minimalist glassmorphic dashboard built for speed and clarity.
 
