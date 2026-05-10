@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import { useStats } from './hooks';
+import { invoke } from '@tauri-apps/api/core';
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -17,20 +17,18 @@ function SetupScreen({ onSetup }) {
   const [error, setError] = useState('');
 
   const pickFolder = async () => {
-    if (window.electronAPI) {
-      const p = await window.electronAPI.openFolderDialog();
-      if (p) setPath(p);
-    }
+    // Tauri folder picker logic will go here if needed, 
+    // for now we use the manual input or handle it via a tauri dialog plugin if installed.
   };
 
   const handleStart = async () => {
     if (!path.trim()) return setError('Please enter or select a folder');
     setLoading(true); setError('');
     try {
-      await axios.post('/api/watch', { watchPath: path.trim() });
+      await invoke('watch_folder', { watchPath: path.trim() });
       onSetup(path.trim());
     } catch (e) {
-      setError(e.response?.data?.error || 'Failed to start syncing');
+      setError(e || 'Failed to start syncing');
     } finally { setLoading(false); }
   };
 
@@ -50,12 +48,9 @@ function SetupScreen({ onSetup }) {
             className="path-input"
             value={path}
             onChange={e => setPath(e.target.value)}
-            placeholder="Paste a folder path or click Browse"
+            placeholder="Paste a folder path"
             onKeyDown={e => e.key === 'Enter' && handleStart()}
           />
-          {window.electronAPI && (
-            <button className="btn btn-ghost" onClick={pickFolder}>Browse</button>
-          )}
         </div>
         {error && <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 8 }}>❌ {error}</div>}
         <button
@@ -64,7 +59,7 @@ function SetupScreen({ onSetup }) {
           onClick={handleStart}
           disabled={loading}
         >
-          {loading ? <span className="spinner" /> : '🚀'} {loading ? 'Starting…' : 'Start Syncing'}
+          {loading ? <span className="spinner" /> : ''} {loading ? 'Starting…' : 'Start Syncing'}
         </button>
       </div>
 
@@ -76,9 +71,9 @@ function SetupScreen({ onSetup }) {
 }
 
 function TitleBar() {
-  const closeApp = () => window.electronAPI?.closeApp?.();
-  const minApp = () => window.electronAPI?.minimizeApp?.();
-  const maxApp = () => window.electronAPI?.maximizeApp?.();
+  const closeApp = () => {};
+  const minApp = () => {};
+  const maxApp = () => {};
 
   return (
     <div className="titlebar">
@@ -98,8 +93,8 @@ export default function App() {
 
   // Check if already configured
   useEffect(() => {
-    axios.get('/api/watch/status').then(({ data }) => {
-      if (data.watchPath) setIsSetup(true);
+    invoke('get_stats').then((data) => {
+      if (data.watch_path) setIsSetup(true);
     }).catch(() => {}).finally(() => setCheckingStatus(false));
   }, []);
 
@@ -136,9 +131,9 @@ export default function App() {
   const toggleWatch = async () => {
     try {
       if (watching) {
-        await axios.post('/api/watch/stop');
+        await invoke('stop_watching');
       } else {
-        await axios.post('/api/watch', { watchPath });
+        await invoke('watch_folder', { watchPath });
       }
       refresh();
     } catch (e) {

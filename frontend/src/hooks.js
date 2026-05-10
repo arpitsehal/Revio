@@ -1,14 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
-
-const BASE = '/api';
+import { useState, useEffect, useCallback } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 export function useStats(refreshMs = 3000) {
   const [stats, setStats] = useState(null);
   const fetch = useCallback(async () => {
-    try { const { data } = await axios.get(`${BASE}/stats`); setStats(data); } catch {}
+    try { const data = await invoke('get_stats'); setStats(data); } catch {}
   }, []);
-  useEffect(() => { fetch(); const id = setInterval(fetch, refreshMs); return () => clearInterval(id); }, [fetch, refreshMs]);
+  useEffect(() => { 
+    fetch(); 
+    const id = setInterval(fetch, refreshMs); 
+    let unlisten;
+    listen('file-changed', fetch).then(fn => unlisten = fn);
+    
+    return () => {
+      clearInterval(id);
+      if (unlisten) unlisten();
+    };
+  }, [fetch, refreshMs]);
   return { stats, refresh: fetch };
 }
 
@@ -18,15 +27,16 @@ export function useFiles(query = {}) {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (query.search) params.set('search', query.search);
-      if (query.status) params.set('status', query.status);
-      if (query.ext)    params.set('ext', query.ext);
-      const { data } = await axios.get(`${BASE}/files?${params}`);
-      setFiles(data.files || []);
+      const data = await invoke('get_files', { search: query.search || null, status: query.status || null, ext: query.ext || null });
+      setFiles(data || []);
     } catch {} finally { setLoading(false); }
   }, [query.search, query.status, query.ext]);
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { 
+    fetch(); 
+    let unlisten;
+    listen('file-changed', fetch).then(fn => unlisten = fn);
+    return () => { if (unlisten) unlisten(); };
+  }, [fetch]);
   return { files, loading, refresh: fetch };
 }
 
@@ -37,8 +47,8 @@ export function useVersions(fileId) {
   useEffect(() => {
     if (!fileId) { setVersions([]); setFile(null); return; }
     setLoading(true);
-    axios.get(`${BASE}/files/${fileId}/versions`)
-      .then(({ data }) => { setVersions(data.versions || []); setFile(data.file || null); })
+    invoke('get_versions', { id: fileId })
+      .then((data) => { setVersions(data.versions || []); setFile(data.file || null); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [fileId]);

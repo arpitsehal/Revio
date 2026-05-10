@@ -100,12 +100,6 @@ export default function VersionTimeline({ file, versions, loading, onRestored })
                           >
                             Restore
                           </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setRestoring({ file, version: { ...v, _asCopy: true } })}
-                          >
-                            Restore as copy
-                          </button>
                         </>
                       )}
                     </div>

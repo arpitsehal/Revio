@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { invoke } from '@tauri-apps/api/core';
 
 export default function Settings({ onFolderChange }) {
   const [settings, setSettings] = useState(null);
@@ -8,9 +8,9 @@ export default function Settings({ onFolderChange }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get('/api/settings').then(({ data }) => {
-      setSettings(data);
-      setWatchPath(data.watchPath || '');
+    invoke('get_settings').then((data) => {
+      setSettings(data || {});
+      setWatchPath(data?.watchPath || '');
     }).catch(() => {});
   }, []);
 
@@ -24,15 +24,16 @@ export default function Settings({ onFolderChange }) {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      await axios.put('/api/settings', { ...settings, watchPath, autoStart: true });
+      const newConfig = { ...settings, watchPath, autoStart: true };
+      await invoke('update_settings', { updates: newConfig });
       if (watchPath !== settings?.watchPath) {
-        await axios.post('/api/watch', { watchPath });
+        await invoke('watch_folder', { watchPath });
         onFolderChange?.(watchPath);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
-      alert('Failed to save: ' + (e.response?.data?.error || e.message));
+      alert('Failed to save: ' + (e || 'Unknown error'));
     } finally { setLoading(false); }
   };
 

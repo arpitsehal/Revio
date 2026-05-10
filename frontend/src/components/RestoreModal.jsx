@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { invoke } from '@tauri-apps/api/core';
 import toast from 'react-hot-toast';
 import { formatTs, formatSize, statusClass } from '../utils';
 
@@ -16,13 +16,13 @@ export default function RestoreModal({ file, version, onClose, onSuccess }) {
     setLoading(true); setError('');
     const loadToast = toast.loading(asCopy ? 'Creating copy...' : 'Restoring file...');
     try {
-      await axios.post(`/api/files/${file.id}/restore`, { versionId: version.versionId, asCopy });
+      await invoke('restore_version', { id: file.id, versionId: version.versionId, asCopy });
       setSuccess(true);
       toast.success(asCopy ? 'Copy created successfully!' : 'File restored successfully!', { id: loadToast });
       onSuccess?.();
       setTimeout(onClose, 1500);
     } catch (e) {
-      const msg = e.response?.data?.error || 'Restore failed';
+      const msg = e || 'Restore failed';
       setError(msg);
       toast.error(msg, { id: loadToast });
     } finally { setLoading(false); }
@@ -55,13 +55,7 @@ export default function RestoreModal({ file, version, onClose, onSuccess }) {
               )}
             </div>
 
-            <div className="setting-row" style={{ background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 20 }}>
-              <div>
-                <div className="setting-label" style={{ fontSize: 13 }}>Restore as a copy</div>
-                <div className="setting-desc">Creates a copy instead of overwriting the original</div>
-              </div>
-              <div className={`toggle ${asCopy ? 'on' : ''}`} onClick={() => setAsCopy(!asCopy)} />
-            </div>
+
 
             {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 12 }}>Error: {error}</div>}
 

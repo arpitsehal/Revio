@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import axios from 'axios';
+import { invoke } from '@tauri-apps/api/core';
 import toast from 'react-hot-toast';
 import { useStats, useFiles, useVersions } from '../hooks';
 import { formatSize } from '../utils';
@@ -102,11 +102,11 @@ export default function Dashboard() {
                     if (window.confirm(`Restore all deleted files in "${currentDir}"?`)) {
                       const loadToast = toast.loading('Restoring all files...');
                       try {
-                        await axios.post('/api/folders/restore', { folderPath: currentDir });
+                        await invoke('restore_folder', { folderPath: currentDir });
                         toast.success('All files restored successfully!', { id: loadToast });
                         refresh();
                       } catch (e) {
-                        toast.error(e.response?.data?.error || 'Restore failed', { id: loadToast });
+                        toast.error(e || 'Restore failed', { id: loadToast });
                       }
                     }
                   }}

@@ -1,3 +1,0 @@
-3Bu
-3B8@0,m:
-This is an added line to test delta compression.nur5C;
